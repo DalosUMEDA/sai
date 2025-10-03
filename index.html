@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オセロゲーム - Sai</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🔵⚫ オセロゲーム</h1>
+            <p>モダンなデザインで楽しむ対戦ゲーム</p>
+        </header>
+
+        <div class="game-setup" id="gameSetup">
+            <div class="setup-card">
+                <h2>ゲーム設定</h2>
+                <div class="setup-option">
+                    <label>あなたの石の色:</label>
+                    <div class="color-selector">
+                        <button class="color-btn" data-color="black">⚫ 黒（先手）</button>
+                        <button class="color-btn" data-color="white">⚪ 白（後手）</button>
+                    </div>
+                </div>
+                <div class="setup-option" id="aiFirstMoveOption" style="display: none;">
+                    <label>コンピュータの1手目を指定:</label>
+                    <div class="first-move-selector">
+                        <button class="first-move-btn" data-move="D3">D3</button>
+                        <button class="first-move-btn" data-move="C4">C4</button>
+                        <button class="first-move-btn" data-move="F5">F5</button>
+                        <button class="first-move-btn" data-move="E6">E6</button>
+                    </div>
+                </div>
+                <button id="startGame" class="start-btn">ゲーム開始</button>
+            </div>
+        </div>
+
+        <div class="game-container" id="gameContainer" style="display: none;">
+            <div class="game-info">
+                <div class="score-board">
+                    <div class="score black-score">
+                        <span class="stone">⚫</span>
+                        <span class="count" id="blackCount">2</span>
+                    </div>
+                    <div class="turn-indicator" id="turnIndicator">
+                        あなたのターン
+                    </div>
+                    <div class="score white-score">
+                        <span class="stone">⚪</span>
+                        <span class="count" id="whiteCount">2</span>
+                    </div>
+                </div>
+                
+                <div class="game-status" id="gameStatus">
+                    ゲーム進行中
+                </div>
+
+                <div class="last-move" id="lastMove" style="display: none;">
+                    最後の手: <span id="lastMoveText"></span>
+                </div>
+            </div>
+
+            <div class="board-container">
+                <div class="coordinates-top">
+                    <div></div>
+                    <div>A</div><div>B</div><div>C</div><div>D</div>
+                    <div>E</div><div>F</div><div>G</div><div>H</div>
+                </div>
+                
+                <div class="board-with-coords">
+                    <div class="coordinates-left">
+                        <div>1</div><div>2</div><div>3</div><div>4</div>
+                        <div>5</div><div>6</div><div>7</div><div>8</div>
+                    </div>
+                    
+                    <div class="board" id="board">
+                        <!-- 8x8のマスが動的に生成される -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-controls">
+                <button id="undoBtn" class="control-btn" disabled>⬅️ 打ち直し</button>
+                <button id="newGameBtn" class="control-btn">🔄 新しいゲーム</button>
+                <button id="showHistoryBtn" class="control-btn">📋 棋譜表示</button>
+            </div>
+        </div>
+
+        <div class="history-modal" id="historyModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📋 棋譜</h3>
+                    <button class="close-btn" id="closeHistory">✖</button>
+                </div>
+                <div class="history-content" id="historyContent">
+                    <!-- 棋譜が表示される -->
+                </div>
+            </div>
+        </div>
+
+        <div class="thinking-indicator" id="thinkingIndicator" style="display: none;">
+            <div class="thinking-animation">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <p>コンピュータが思考中...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
