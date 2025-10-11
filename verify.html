@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Move History Verification</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .info-box {
+            margin: 10px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .info-box strong {
+            color: #495057;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .code {
+            font-family: 'Courier New', monospace;
+            background: #f1f3f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hidden DOM elements needed by OthelloGame -->
+    <div style="display: none;">
+        <div id="board"></div>
+        <div id="historyContent"></div>
+        <div id="historyModal"></div>
+        <div id="gameSetup"></div>
+        <div id="gameContainer"></div>
+        <div id="thinkingIndicator"></div>
+        <div id="lastMove"></div>
+        <div id="lastMoveText"></div>
+        <div id="turnIndicator"></div>
+        <div id="gameStatus"></div>
+        <div id="blackCount"></div>
+        <div id="whiteCount"></div>
+        <button id="undoBtn"></button>
+        <button id="newGameBtn"></button>
+        <button id="showHistoryBtn"></button>
+        <button id="closeHistory"></button>
+        <div class="color-btn"></div>
+        <div class="first-move-btn"></div>
+        <button id="startGame"></button>
+        <div id="aiFirstMoveOption"></div>
+    </div>
+
+    <div class="container">
+        <h1>🔍 棋譜記録システム 検証</h1>
+        
+        <div class="test-section">
+            <h3>📋 検証内容</h3>
+            <p>このページでは、棋譜記録システムの修正内容を検証します。</p>
+            <ul>
+                <li>✅ 通常着手時：棋譜記録 → 盤面・手番保存の順序</li>
+                <li>✅ パス時：棋譜記録 → 盤面・手番保存の順序</li>
+                <li>✅ Undo時：棋譜・盤面・手番の3点セットで復元</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🎮 テスト1: 通常着手の記録</h3>
+            <button onclick="test1()">実行</button>
+            <div id="test1-result" class="info-box" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>⏩ テスト2: Undoによる復元</h3>
+            <button onclick="test2()">実行</button>
+            <div id="test2-result" class="info-box" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 テスト3: リセット機能</h3>
+            <button onclick="test3()">実行</button>
+            <div id="test3-result" class="info-box" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 テスト4: 状態の整合性チェック</h3>
+            <button onclick="test4()">実行</button>
+            <div id="test4-result" class="info-box" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        function test1() {
+            const result = document.getElementById('test1-result');
+            result.style.display = 'block';
+            
+            const game = new OthelloGame();
+            game.isGameActive = true;
+            
+            let html = '<strong>テスト1: 通常着手の記録</strong><br><br>';
+            
+            // 初期状態
+            html += `初期状態:<br>`;
+            html += `- gameHistory.length: ${game.gameHistory.length}<br>`;
+            html += `- gameState.length: ${game.gameState.length}<br><br>`;
+            
+            // 1手目
+            game.makeMove(2, 3); // D3
+            
+            html += `1手目 (D3) 着手後:<br>`;
+            html += `- gameHistory.length: ${game.gameHistory.length}<br>`;
+            html += `- gameHistory[0]: ${JSON.stringify(game.gameHistory[0])}<br>`;
+            html += `- gameState.length: ${game.gameState.length}<br>`;
+            html += `- gameState[0].history.length: ${game.gameState[0].history.length}<br>`;
+            html += `- gameState[0].currentPlayer: ${game.gameState[0].currentPlayer}<br>`;
+            html += `- 現在のcurrentPlayer: ${game.currentPlayer}<br><br>`;
+            
+            // 検証
+            const check1 = game.gameHistory.length === 1;
+            const check2 = game.gameState.length === 1;
+            const check3 = game.gameState[0].history.length === 1;
+            const check4 = game.gameState[0].currentPlayer === 'white';
+            
+            html += '<strong>検証結果:</strong><br>';
+            html += `✅ 棋譜に1手記録された: ${check1 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            html += `✅ ゲーム状態が1つ保存された: ${check2 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            html += `✅ 保存された状態の棋譜に1手含まれる: ${check3 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            html += `✅ 保存された状態のcurrentPlayerが'white'（手番交代後）: ${check4 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            
+            if (check1 && check2 && check3 && check4) {
+                html += '<br><strong class="success">✅ テスト1 合格！</strong>';
+            } else {
+                html += '<br><strong class="error">❌ テスト1 不合格</strong>';
+            }
+            
+            result.innerHTML = html;
+        }
+
+        function test2() {
+            const result = document.getElementById('test2-result');
+            result.style.display = 'block';
+            
+            const game = new OthelloGame();
+            game.isGameActive = true;
+            game.humanPlayer = 'black';
+            game.computerPlayer = 'white';
+            
+            let html = '<strong>テスト2: Undoによる復元</strong><br><br>';
+            
+            // 複数手打つ
+            game.makeMove(2, 3); // D3
+            
+            html += `着手後:<br>`;
+            html += `- gameHistory.length: ${game.gameHistory.length}<br>`;
+            html += `- gameState.length: ${game.gameState.length}<br>`;
+            html += `- currentPlayer: ${game.currentPlayer}<br><br>`;
+            
+            const historyLength = game.gameHistory.length;
+            const stateLength = game.gameState.length;
+            
+            // Undo
+            game.currentPlayer = game.humanPlayer;
+            game.undoMove();
+            
+            html += `Undo後:<br>`;
+            html += `- gameHistory.length: ${game.gameHistory.length}<br>`;
+            html += `- gameState.length: ${game.gameState.length}<br>`;
+            html += `- currentPlayer: ${game.currentPlayer}<br><br>`;
+            
+            // 検証
+            const check1 = game.gameHistory.length === 0;
+            const check2 = game.gameState.length === 0;
+            const check3 = game.currentPlayer === 'black';
+            
+            html += '<strong>検証結果:</strong><br>';
+            html += `✅ 棋譜が復元された: ${check1 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            html += `✅ ゲーム状態が復元された: ${check2 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            html += `✅ 手番が復元された: ${check3 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            
+            if (check1 && check2 && check3) {
+                html += '<br><strong class="success">✅ テスト2 合格！</strong>';
+            } else {
+                html += '<br><strong class="error">❌ テスト2 不合格</strong>';
+            }
+            
+            result.innerHTML = html;
+        }
+
+        function test3() {
+            const result = document.getElementById('test3-result');
+            result.style.display = 'block';
+            
+            const game = new OthelloGame();
+            game.isGameActive = true;
+            
+            let html = '<strong>テスト3: リセット機能</strong><br><br>';
+            
+            // 何手か打つ
+            game.makeMove(2, 3);
+            
+            html += `着手後:<br>`;
+            html += `- gameHistory.length: ${game.gameHistory.length}<br>`;
+            html += `- gameState.length: ${game.gameState.length}<br><br>`;
+            
+            // リセット
+            game.resetBoard();
+            
+            html += `リセット後:<br>`;
+            html += `- gameHistory.length: ${game.gameHistory.length}<br>`;
+            html += `- gameState.length: ${game.gameState.length}<br><br>`;
+            
+            // 検証
+            const check1 = game.gameHistory.length === 0;
+            const check2 = game.gameState.length === 0;
+            
+            html += '<strong>検証結果:</strong><br>';
+            html += `✅ 棋譜がクリアされた: ${check1 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            html += `✅ ゲーム状態がクリアされた: ${check2 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            
+            if (check1 && check2) {
+                html += '<br><strong class="success">✅ テスト3 合格！</strong>';
+            } else {
+                html += '<br><strong class="error">❌ テスト3 不合格</strong>';
+            }
+            
+            result.innerHTML = html;
+        }
+
+        function test4() {
+            const result = document.getElementById('test4-result');
+            result.style.display = 'block';
+            
+            const game = new OthelloGame();
+            game.isGameActive = true;
+            
+            let html = '<strong>テスト4: 状態の整合性チェック</strong><br><br>';
+            
+            // 1手目
+            game.makeMove(2, 3); // D3
+            
+            const savedState = game.gameState[0];
+            
+            html += `現在の状態:<br>`;
+            html += `- currentPlayer: ${game.currentPlayer}<br>`;
+            html += `- gameHistory.length: ${game.gameHistory.length}<br>`;
+            html += `- gameHistory[0].move: ${game.gameHistory[0].move}<br><br>`;
+            
+            html += `保存された状態:<br>`;
+            html += `- savedState.currentPlayer: ${savedState.currentPlayer}<br>`;
+            html += `- savedState.history.length: ${savedState.history.length}<br>`;
+            html += `- savedState.history[0].move: ${savedState.history[0].move}<br><br>`;
+            
+            // 検証
+            const check1 = savedState.currentPlayer === game.currentPlayer;
+            const check2 = savedState.history.length === game.gameHistory.length;
+            const check3 = savedState.history[0].move === game.gameHistory[0].move;
+            
+            html += '<strong>検証結果:</strong><br>';
+            html += `✅ 保存された手番と現在の手番が一致: ${check1 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            html += `✅ 保存された棋譜の長さが一致: ${check2 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            html += `✅ 保存された棋譜の内容が一致: ${check3 ? '<span class="success">PASS</span>' : '<span class="error">FAIL</span>'}<br>`;
+            
+            if (check1 && check2 && check3) {
+                html += '<br><strong class="success">✅ テスト4 合格！</strong>';
+            } else {
+                html += '<br><strong class="error">❌ テスト4 不合格</strong>';
+            }
+            
+            result.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
