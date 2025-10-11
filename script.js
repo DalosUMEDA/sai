@@ -184,9 +184,6 @@ class OthelloGame {
             return false;
         }
         
-        // ゲーム状態を保存（アンドゥ用）
-        this.saveGameState();
-        
         // 手を記録
         const moveNotation = this.formatMove(row, col);
         this.gameHistory.push({
@@ -209,6 +206,9 @@ class OthelloGame {
         // プレイヤーを交代
         this.currentPlayer = this.currentPlayer === 'black' ? 'white' : 'black';
         
+        // ゲーム状態を保存（アンドゥ用）- 棋譜記録と手番交代の後に保存
+        this.saveGameState();
+        
         // ゲーム状況をチェック
         setTimeout(() => {
             if (this.checkGameEnd()) {
@@ -226,6 +226,8 @@ class OthelloGame {
                     row: -1,
                     col: -1
                 });
+                // パス後のゲーム状態を保存
+                this.saveGameState();
                 
                 if (this.getValidMoves(this.currentPlayer).length === 0) {
                     this.endGame();
@@ -270,6 +272,8 @@ class OthelloGame {
                     row: -1,
                     col: -1
                 });
+                // パス後のゲーム状態を保存
+                this.saveGameState();
                 this.updateGameInfo();
                 this.showValidMoves();
             }

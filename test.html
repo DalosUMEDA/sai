@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Othello Game Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .summary {
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f4ff;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Othello Game 棋譜記録テスト</h1>
+    <div id="test-results"></div>
+    <div id="test-summary" class="summary"></div>
+
+    <script src="script.js"></script>
+    <script>
+        // Test utilities
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+
+        function assertEqual(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(`${message}: Expected ${expected}, got ${actual}`);
+            }
+        }
+
+        function assertArrayEqual(actual, expected, message) {
+            if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                throw new Error(`${message}: Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+            }
+        }
+
+        // Test runner
+        class TestRunner {
+            constructor() {
+                this.results = [];
+            }
+
+            async runTest(name, testFn) {
+                try {
+                    await testFn();
+                    this.results.push({ name, status: 'pass' });
+                    return true;
+                } catch (error) {
+                    this.results.push({ name, status: 'fail', error: error.message });
+                    return false;
+                }
+            }
+
+            displayResults() {
+                const resultsDiv = document.getElementById('test-results');
+                const summaryDiv = document.getElementById('test-summary');
+                
+                let html = '';
+                this.results.forEach(result => {
+                    const className = result.status === 'pass' ? 'pass' : 'fail';
+                    const icon = result.status === 'pass' ? '✅' : '❌';
+                    html += `
+                        <div class="test-result ${className}">
+                            ${icon} <strong>${result.name}</strong>
+                            ${result.error ? `<br><em>Error: ${result.error}</em>` : ''}
+                        </div>
+                    `;
+                });
+                resultsDiv.innerHTML = html;
+
+                const passed = this.results.filter(r => r.status === 'pass').length;
+                const total = this.results.length;
+                summaryDiv.innerHTML = `
+                    テスト結果: ${passed}/${total} 成功
+                    ${passed === total ? '🎉 全テスト合格！' : '⚠️ 一部のテストが失敗しました'}
+                `;
+            }
+        }
+
+        // Tests
+        async function runAllTests() {
+            const runner = new TestRunner();
+
+            // テスト1: 通常着手で棋譜が正しく残る
+            await runner.runTest('通常着手で棋譜が正しく残る', async () => {
+                const game = new OthelloGame();
+                game.resetBoard();
+                
+                // 初期状態
+                assertEqual(game.gameHistory.length, 0, '初期状態で棋譜は空');
+                
+                // 1手目
+                game.makeMove(2, 3); // C4
+                assertEqual(game.gameHistory.length, 1, '1手目が記録される');
+                assertEqual(game.gameHistory[0].move, 'D3', '1手目の記録が正しい');
+                assertEqual(game.gameHistory[0].player, 'black', '1手目のプレイヤーが正しい');
+                
+                // ゲーム状態が保存されている
+                assertEqual(game.gameState.length, 1, 'ゲーム状態が保存されている');
+                assertEqual(game.gameState[0].history.length, 1, '保存された状態の棋譜が正しい');
+            });
+
+            // テスト2: パス時にパスが棋譜に記録される
+            await runner.runTest('パス時にパスが棋譜に記録される', async () => {
+                const game = new OthelloGame();
+                game.resetBoard();
+                
+                // パスが発生する状況を作る（全ての石を一色にする）
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        game.board[i][j] = 'black';
+                    }
+                }
+                game.board[0][0] = null;
+                game.currentPlayer = 'black';
+                
+                const initialHistoryLength = game.gameHistory.length;
+                
+                // 合法手を打つ
+                game.makeMove(0, 0);
+                
+                // パスが記録されるまで待つ
+                await new Promise(resolve => setTimeout(resolve, 700));
+                
+                // パスが記録されているか確認
+                const passMove = game.gameHistory.find(m => m.move === 'PASS');
+                assert(passMove !== undefined, 'パスが棋譜に記録されている');
+                
+                // パスのゲーム状態が保存されているか確認
+                const stateWithPass = game.gameState.find(s => 
+                    s.history.some(h => h.move === 'PASS')
+                );
+                assert(stateWithPass !== undefined, 'パス後のゲーム状態が保存されている');
+            });
+
+            // テスト3: Undoで棋譜が巻き戻る
+            await runner.runTest('Undoで棋譜が巻き戻る', async () => {
+                const game = new OthelloGame();
+                game.resetBoard();
+                game.humanPlayer = 'black';
+                game.computerPlayer = 'white';
+                game.isGameActive = true;
+                
+                // 複数手打つ
+                game.makeMove(2, 3); // D3
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                const historyLength = game.gameHistory.length;
+                const stateLength = game.gameState.length;
+                
+                // Undo
+                game.currentPlayer = game.humanPlayer; // 人間のターンに設定
+                game.undoMove();
+                
+                // 棋譜が巻き戻っているか確認
+                assert(game.gameHistory.length < historyLength, '棋譜が巻き戻っている');
+                assert(game.gameState.length < stateLength, 'ゲーム状態が巻き戻っている');
+            });
+
+            // テスト4: Undo後の再着手で棋譜が分岐する
+            await runner.runTest('Undo後の再着手で棋譜が分岐する', async () => {
+                const game = new OthelloGame();
+                game.resetBoard();
+                game.humanPlayer = 'black';
+                game.computerPlayer = 'white';
+                game.isGameActive = true;
+                
+                // 1手目
+                game.makeMove(2, 3); // D3
+                const firstMove = game.gameHistory[0].move;
+                
+                // Undo
+                game.currentPlayer = game.humanPlayer;
+                game.undoMove();
+                assertEqual(game.gameHistory.length, 0, 'Undo後は棋譜が空');
+                
+                // 別の手を打つ
+                game.makeMove(3, 2); // C4
+                assertEqual(game.gameHistory.length, 1, '新しい手が記録される');
+                assert(game.gameHistory[0].move !== firstMove, '異なる手が記録されている');
+            });
+
+            // テスト5: 新しいゲーム開始時は棋譜がリセットされる
+            await runner.runTest('新しいゲーム開始時は棋譜がリセットされる', async () => {
+                const game = new OthelloGame();
+                game.resetBoard();
+                
+                // 何手か打つ
+                game.makeMove(2, 3);
+                assert(game.gameHistory.length > 0, '棋譜が記録されている');
+                
+                // リセット
+                game.resetBoard();
+                assertEqual(game.gameHistory.length, 0, 'リセット後は棋譜が空');
+                assertEqual(game.gameState.length, 0, 'リセット後はゲーム状態が空');
+            });
+
+            // テスト6: 盤面状態と棋譜が常に一致する
+            await runner.runTest('盤面状態と棋譜が常に一致する', async () => {
+                const game = new OthelloGame();
+                game.resetBoard();
+                
+                // 手を打つ
+                game.makeMove(2, 3); // D3
+                
+                // ゲーム状態と棋譜の一致を確認
+                assertEqual(game.gameState.length, 1, 'ゲーム状態が保存されている');
+                assertEqual(game.gameState[0].history.length, 1, '保存された棋譜の長さが正しい');
+                assertEqual(
+                    game.gameState[0].history[0].move,
+                    game.gameHistory[0].move,
+                    '保存された棋譜の内容が現在の棋譜と一致'
+                );
+                
+                // currentPlayerも一致しているか
+                assert(
+                    game.gameState[0].currentPlayer === 'black',
+                    '保存されたプレイヤー情報が正しい'
+                );
+            });
+
+            // テスト7: showHistoryが正しく棋譜を表示できる
+            await runner.runTest('showHistoryが正しく棋譜を表示できる', async () => {
+                const game = new OthelloGame();
+                game.resetBoard();
+                game.humanPlayer = 'black';
+                
+                // 空の状態
+                game.showHistory();
+                const emptyContent = document.getElementById('historyContent').innerHTML;
+                assert(emptyContent.includes('まだ手が指されていません'), '空の棋譜が正しく表示される');
+                
+                // 手を打った後
+                game.makeMove(2, 3);
+                game.showHistory();
+                const content = document.getElementById('historyContent').innerHTML;
+                assert(content.includes('D3'), '棋譜に手が表示される');
+                assert(content.includes('⚫'), '棋譜に石の色が表示される');
+            });
+
+            runner.displayResults();
+        }
+
+        // ページ読み込み後にテスト実行
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>
